@@ -1,0 +1,1002 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0" />
+  <meta name="theme-color" content="#000000" />
+  <meta name="apple-mobile-web-app-capable" content="yes" />
+  <meta name="apple-mobile-web-app-status-bar-style" content="black" />
+  <meta name="apple-mobile-web-app-title" content="SigOps" />
+  <title>SigOps | CRE Dashboard</title>
+  <link href="https://fonts.googleapis.com/css2?family=Rajdhani:wght@500;600;700&family=Inter:wght@400;500;600&display=swap" rel="stylesheet" />
+
+  <script>
+    const manifest = { name:"SigOps CRE Dashboard", short_name:"SigOps", start_url:"./dashboard.html", display:"standalone", background_color:"#000000", theme_color:"#000000", icons:[{src:"./sigops-logo.jpg",sizes:"192x192",type:"image/jpeg"}] };
+    const l = document.createElement('link'); l.rel='manifest'; l.href=URL.createObjectURL(new Blob([JSON.stringify(manifest)],{type:'application/json'})); document.head.appendChild(l);
+  </script>
+
+  <style>
+    :root {
+      --black:       #000000;
+      --bg:          #080808;
+      --bg-card:     #101010;
+      --bg-panel:    #0c0c0c;
+      --border:      #1f1f1f;
+      --border-hi:   #333333;
+
+      --white:       #ffffff;
+      --chrome:      #d8d8d8;
+      --silver:      #a0a0a0;
+      --steel:       #6a6a6a;
+      --dim:         #383838;
+
+      /* The one accent — the blue from the logo LED, used sparingly */
+      --accent:      #3a7bd5;
+      --accent-dim:  rgba(58,123,213,0.08);
+      --accent-glow: rgba(58,123,213,0.18);
+
+      --radius:    8px;
+      --radius-lg: 14px;
+      --shadow:    0 8px 32px rgba(0,0,0,0.7);
+    }
+
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+
+    body {
+      font-family: 'Inter', -apple-system, sans-serif;
+      background: var(--bg);
+      color: var(--chrome);
+      min-height: 100vh;
+      -webkit-font-smoothing: antialiased;
+    }
+
+    /* ── HEADER ── */
+    header {
+      background: var(--black);
+      border-bottom: 1px solid var(--border);
+      padding: 0 24px;
+      height: 68px;
+      position: sticky;
+      top: 0;
+      z-index: 100;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 16px;
+    }
+
+    .header-left { display: flex; align-items: center; gap: 0; }
+
+    /* Logo is a banner image — crop it nicely */
+    .logo-img {
+      height: 52px;
+      width: auto;
+      object-fit: contain;
+      object-position: left center;
+      /* The image has a dark bg so it blends with black header */
+      border-radius: 4px;
+    }
+
+    .header-divider {
+      width: 1px;
+      height: 32px;
+      background: var(--border-hi);
+      margin: 0 20px;
+    }
+
+    .header-label {
+      font-family: 'Rajdhani', sans-serif;
+      font-size: 13px;
+      font-weight: 700;
+      letter-spacing: 3px;
+      text-transform: uppercase;
+      color: var(--silver);
+    }
+
+    .header-sub {
+      font-family: 'Rajdhani', sans-serif;
+      font-size: 10px;
+      letter-spacing: 2px;
+      text-transform: uppercase;
+      color: var(--steel);
+      margin-top: 2px;
+    }
+
+    .header-right { display: flex; align-items: center; gap: 8px; }
+
+    .last-updated {
+      font-size: 11px;
+      color: var(--steel);
+      letter-spacing: 0.5px;
+      margin-right: 4px;
+    }
+
+    .filter-toggle-btn {
+      display: none;
+      background: var(--bg-card);
+      border: 1px solid var(--border);
+      color: var(--silver);
+      padding: 7px 12px;
+      border-radius: var(--radius);
+      font-size: 13px;
+      cursor: pointer;
+      font-family: 'Inter', sans-serif;
+      transition: all 0.2s;
+    }
+    .filter-toggle-btn:hover { border-color: var(--border-hi); color: var(--chrome); }
+
+    .mode-btn {
+      background: var(--bg-card);
+      border: 1px solid var(--border);
+      color: var(--silver);
+      padding: 7px 16px;
+      border-radius: var(--radius);
+      font-family: 'Rajdhani', sans-serif;
+      font-size: 12px;
+      font-weight: 700;
+      letter-spacing: 2px;
+      text-transform: uppercase;
+      cursor: pointer;
+      transition: all 0.2s;
+      white-space: nowrap;
+    }
+    .mode-btn:hover { border-color: var(--border-hi); color: var(--chrome); }
+    .mode-btn.demo { border-color: var(--accent); color: var(--accent); background: var(--accent-dim); }
+
+    /* ── STATS BAR ── */
+    .stats-bar {
+      background: var(--black);
+      border-bottom: 1px solid var(--border);
+      padding: 10px 24px;
+      display: flex;
+      gap: 6px;
+      overflow-x: auto;
+      scrollbar-width: none;
+    }
+    .stats-bar::-webkit-scrollbar { display: none; }
+
+    .stat-chip {
+      background: var(--bg-card);
+      border: 1px solid var(--border);
+      border-radius: 20px;
+      padding: 6px 16px;
+      white-space: nowrap;
+      cursor: pointer;
+      transition: all 0.2s;
+      flex-shrink: 0;
+      font-family: 'Rajdhani', sans-serif;
+      font-size: 11px;
+      font-weight: 700;
+      letter-spacing: 1.5px;
+      text-transform: uppercase;
+      color: var(--steel);
+    }
+    .stat-chip strong { font-size: 15px; margin-right: 5px; color: var(--chrome); }
+    .stat-chip:hover { border-color: var(--border-hi); color: var(--chrome); }
+    .stat-chip.active {
+      background: var(--white);
+      border-color: var(--white);
+      color: var(--black);
+    }
+    .stat-chip.active strong { color: var(--black); }
+
+    /* ── LAYOUT ── */
+    .app-body { display: flex; height: calc(100vh - 118px); }
+
+    /* ── SIDEBAR ── */
+    .sidebar {
+      width: 230px;
+      flex-shrink: 0;
+      background: var(--black);
+      border-right: 1px solid var(--border);
+      overflow-y: auto;
+      padding: 20px 14px;
+      display: flex;
+      flex-direction: column;
+      gap: 16px;
+    }
+    .sidebar::-webkit-scrollbar { width: 3px; }
+    .sidebar::-webkit-scrollbar-thumb { background: var(--border); border-radius: 3px; }
+
+    .sidebar-title {
+      font-family: 'Rajdhani', sans-serif;
+      font-size: 10px;
+      font-weight: 700;
+      letter-spacing: 3px;
+      text-transform: uppercase;
+      color: var(--steel);
+      padding-bottom: 12px;
+      border-bottom: 1px solid var(--border);
+    }
+
+    .filter-group label {
+      display: block;
+      font-family: 'Rajdhani', sans-serif;
+      font-size: 10px;
+      font-weight: 700;
+      text-transform: uppercase;
+      letter-spacing: 2px;
+      color: var(--steel);
+      margin-bottom: 6px;
+    }
+
+    .filter-group select,
+    .filter-group input {
+      width: 100%;
+      background: var(--bg-card);
+      border: 1px solid var(--border);
+      color: var(--chrome);
+      padding: 8px 10px;
+      border-radius: var(--radius);
+      font-size: 13px;
+      font-family: 'Inter', sans-serif;
+      appearance: none;
+      -webkit-appearance: none;
+      outline: none;
+      transition: border-color 0.2s;
+    }
+    .filter-group select:focus,
+    .filter-group input:focus { border-color: var(--border-hi); }
+    .filter-group select option { background: #111; }
+    .filter-group input::placeholder { color: var(--dim); }
+
+    .clear-btn {
+      width: 100%;
+      background: transparent;
+      border: 1px solid var(--border);
+      color: var(--steel);
+      padding: 8px;
+      border-radius: var(--radius);
+      font-family: 'Rajdhani', sans-serif;
+      font-size: 11px;
+      font-weight: 700;
+      letter-spacing: 2px;
+      text-transform: uppercase;
+      cursor: pointer;
+      transition: all 0.2s;
+      margin-top: 4px;
+    }
+    .clear-btn:hover { border-color: var(--border-hi); color: var(--chrome); }
+
+    /* ── MAIN ── */
+    .main { flex: 1; overflow-y: auto; padding: 20px; }
+    .main::-webkit-scrollbar { width: 4px; }
+    .main::-webkit-scrollbar-thumb { background: var(--border); border-radius: 4px; }
+
+    .results-header { display: flex; align-items: center; margin-bottom: 14px; }
+
+    .results-count {
+      font-family: 'Rajdhani', sans-serif;
+      font-size: 11px;
+      font-weight: 700;
+      letter-spacing: 2px;
+      text-transform: uppercase;
+      color: var(--steel);
+    }
+    .results-count strong { color: var(--chrome); }
+
+    /* ── CARDS ── */
+    .cards-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(310px, 1fr));
+      gap: 10px;
+    }
+
+    .agent-card {
+      background: var(--bg-card);
+      border: 1px solid var(--border);
+      border-radius: var(--radius-lg);
+      overflow: hidden;
+      cursor: pointer;
+      transition: border-color 0.2s, box-shadow 0.2s, transform 0.15s;
+      position: relative;
+    }
+
+    /* Chrome top-line accent on hover/expand */
+    .agent-card::before {
+      content: '';
+      position: absolute;
+      top: 0; left: 0; right: 0;
+      height: 1px;
+      background: linear-gradient(90deg, transparent 0%, var(--chrome) 50%, transparent 100%);
+      opacity: 0;
+      transition: opacity 0.2s;
+    }
+    .agent-card:hover::before,
+    .agent-card.expanded::before { opacity: 0.5; }
+
+    .agent-card:hover {
+      border-color: var(--border-hi);
+      box-shadow: var(--shadow);
+      transform: translateY(-1px);
+    }
+    .agent-card.expanded {
+      border-color: var(--border-hi);
+      box-shadow: var(--shadow);
+    }
+
+    .card-header { padding: 14px 16px 10px; border-bottom: 1px solid var(--border); }
+
+    .card-top {
+      display: flex;
+      align-items: flex-start;
+      justify-content: space-between;
+      gap: 8px;
+      margin-bottom: 8px;
+    }
+
+    .agent-name {
+      font-family: 'Rajdhani', sans-serif;
+      font-size: 16px;
+      font-weight: 700;
+      color: var(--white);
+      letter-spacing: 1px;
+      text-transform: uppercase;
+    }
+
+    .agent-firm {
+      font-size: 11px;
+      color: var(--steel);
+      margin-top: 2px;
+    }
+
+    /* Status badges — monochrome with one accent for active/converted */
+    .status-badge {
+      flex-shrink: 0;
+      padding: 3px 9px;
+      border-radius: 3px;
+      font-family: 'Rajdhani', sans-serif;
+      font-size: 10px;
+      font-weight: 700;
+      text-transform: uppercase;
+      letter-spacing: 1.5px;
+    }
+
+    .status-not_contacted { background: #111; border: 1px solid var(--border);    color: var(--steel); }
+    .status-contacted     { background: #181818; border: 1px solid var(--dim);    color: var(--silver); }
+    .status-interested    { background: #1a1a10; border: 1px solid #4a4010;       color: #c8a830; }
+    .status-pilot_active  { background: #0a1a0a; border: 1px solid #1a4a1a;       color: #50c878; }
+    .status-converted     { background: var(--white); border: 1px solid var(--white); color: var(--black); }
+
+    .card-tags { display: flex; flex-wrap: wrap; gap: 4px; }
+
+    .tag {
+      background: #141414;
+      border: 1px solid var(--border);
+      color: var(--silver);
+      font-family: 'Rajdhani', sans-serif;
+      font-size: 10px;
+      font-weight: 700;
+      letter-spacing: 1px;
+      text-transform: uppercase;
+      padding: 2px 7px;
+      border-radius: 3px;
+    }
+
+    /* Card Contact */
+    .card-contact {
+      padding: 10px 16px;
+      display: flex;
+      flex-direction: column;
+      gap: 5px;
+      border-bottom: 1px solid var(--border);
+    }
+    .contact-row { display: flex; align-items: center; gap: 8px; font-size: 12px; color: var(--steel); }
+    .contact-row a { color: var(--chrome); text-decoration: none; transition: color 0.15s; }
+    .contact-row a:hover { color: var(--white); }
+    .contact-icon { width: 14px; text-align: center; flex-shrink: 0; font-size: 11px; }
+
+    /* Card Footer */
+    .card-footer {
+      padding: 8px 16px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+    }
+    .listing-counts { display: flex; gap: 12px; }
+    .listing-count-chip {
+      font-family: 'Rajdhani', sans-serif;
+      font-size: 11px;
+      font-weight: 600;
+      letter-spacing: 0.5px;
+      text-transform: uppercase;
+      color: var(--steel);
+    }
+    .expand-arrow { font-size: 9px; color: var(--dim); transition: transform 0.25s; }
+    .agent-card.expanded .expand-arrow { transform: rotate(180deg); color: var(--silver); }
+
+    /* ── EXPANDED PANEL ── */
+    .expand-panel { display: none; background: var(--bg-panel); border-top: 1px solid var(--border); }
+    .agent-card.expanded .expand-panel { display: block; }
+
+    .panel-section { padding: 14px 16px; }
+    .panel-section + .panel-section { border-top: 1px solid var(--border); }
+
+    .panel-title {
+      font-family: 'Rajdhani', sans-serif;
+      font-size: 10px;
+      font-weight: 700;
+      text-transform: uppercase;
+      letter-spacing: 2.5px;
+      color: var(--steel);
+      margin-bottom: 10px;
+    }
+
+    .listing-item {
+      background: var(--bg-card);
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      padding: 10px 12px;
+      margin-bottom: 8px;
+      font-size: 12px;
+    }
+    .listing-item:last-child { margin-bottom: 0; }
+
+    .listing-name {
+      font-family: 'Rajdhani', sans-serif;
+      font-size: 13px;
+      font-weight: 700;
+      color: var(--chrome);
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+      margin-bottom: 5px;
+    }
+
+    .listing-details {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 8px;
+      color: var(--steel);
+      font-size: 11px;
+      margin-bottom: 6px;
+    }
+
+    .listing-tag {
+      background: #141414;
+      border: 1px solid var(--border);
+      color: var(--silver);
+      font-family: 'Rajdhani', sans-serif;
+      font-size: 10px;
+      font-weight: 600;
+      letter-spacing: 0.5px;
+      padding: 1px 7px;
+      border-radius: 3px;
+    }
+
+    .listing-link {
+      font-family: 'Rajdhani', sans-serif;
+      font-size: 11px;
+      font-weight: 700;
+      letter-spacing: 1px;
+      text-transform: uppercase;
+      color: var(--silver);
+      text-decoration: none;
+      transition: color 0.15s;
+    }
+    .listing-link:hover { color: var(--white); }
+
+    .no-listings { color: var(--steel); font-size: 12px; font-style: italic; }
+
+    /* ── INTERNAL PANEL ── */
+    .status-editor { display: flex; align-items: center; gap: 10px; margin-bottom: 10px; }
+
+    .status-editor label {
+      font-family: 'Rajdhani', sans-serif;
+      font-size: 10px;
+      font-weight: 700;
+      letter-spacing: 2px;
+      text-transform: uppercase;
+      color: var(--steel);
+      white-space: nowrap;
+      flex-shrink: 0;
+    }
+
+    .status-editor select {
+      background: var(--bg-card);
+      border: 1px solid var(--border);
+      color: var(--chrome);
+      padding: 6px 8px;
+      border-radius: var(--radius);
+      font-size: 12px;
+      font-family: 'Inter', sans-serif;
+      flex: 1;
+      appearance: none;
+      -webkit-appearance: none;
+      outline: none;
+      cursor: pointer;
+      transition: border-color 0.2s;
+    }
+    .status-editor select:focus { border-color: var(--border-hi); }
+
+    .notes-field {
+      width: 100%;
+      background: var(--bg-card);
+      border: 1px solid var(--border);
+      color: var(--chrome);
+      padding: 8px 10px;
+      border-radius: var(--radius);
+      font-size: 12px;
+      font-family: 'Inter', sans-serif;
+      resize: vertical;
+      min-height: 56px;
+      outline: none;
+      transition: border-color 0.2s;
+    }
+    .notes-field:focus { border-color: var(--border-hi); }
+    .notes-field::placeholder { color: var(--dim); }
+
+    .internal-meta {
+      margin-top: 8px;
+      font-size: 10px;
+      color: var(--steel);
+      font-family: 'Rajdhani', sans-serif;
+      font-weight: 600;
+      letter-spacing: 1px;
+      text-transform: uppercase;
+    }
+
+    /* ── CTA ── */
+    .cta-section {
+      margin-top: 24px;
+      border: 1px solid var(--border);
+      border-radius: var(--radius-lg);
+      background: var(--black);
+      overflow: hidden;
+    }
+
+    .cta-inner {
+      padding: 40px 24px;
+      text-align: center;
+      border-top: 1px solid var(--border-hi);
+    }
+
+    .cta-eyebrow {
+      font-family: 'Rajdhani', sans-serif;
+      font-size: 11px;
+      font-weight: 700;
+      letter-spacing: 4px;
+      text-transform: uppercase;
+      color: var(--accent);
+      margin-bottom: 12px;
+    }
+
+    .cta-title {
+      font-family: 'Rajdhani', sans-serif;
+      font-size: 30px;
+      font-weight: 700;
+      text-transform: uppercase;
+      letter-spacing: 1px;
+      /* Chrome/silver gradient text */
+      background: linear-gradient(180deg, #ffffff 0%, #a0a0a0 100%);
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+      background-clip: text;
+      line-height: 1.1;
+      margin-bottom: 12px;
+    }
+
+    .cta-sub {
+      font-size: 13px;
+      color: var(--steel);
+      max-width: 400px;
+      margin: 0 auto 24px;
+      line-height: 1.7;
+    }
+
+    .cta-btn {
+      background: var(--white);
+      color: var(--black);
+      border: none;
+      padding: 12px 36px;
+      border-radius: var(--radius);
+      font-family: 'Rajdhani', sans-serif;
+      font-size: 13px;
+      font-weight: 700;
+      letter-spacing: 3px;
+      text-transform: uppercase;
+      cursor: pointer;
+      transition: background 0.2s, box-shadow 0.2s, transform 0.15s;
+    }
+    .cta-btn:hover {
+      background: var(--chrome);
+      box-shadow: 0 4px 24px rgba(255,255,255,0.15);
+      transform: translateY(-1px);
+    }
+
+    /* ── LOADING / EMPTY ── */
+    .empty-state { text-align: center; padding: 60px 20px; }
+    .empty-state .icon { font-size: 32px; margin-bottom: 10px; }
+    .empty-state p { font-size: 13px; color: var(--steel); }
+
+    .loading {
+      display: flex; align-items: center; justify-content: center;
+      height: 200px; flex-direction: column; gap: 14px;
+      font-family: 'Rajdhani', sans-serif; font-size: 12px;
+      font-weight: 700; letter-spacing: 2px; text-transform: uppercase;
+      color: var(--steel);
+    }
+
+    .spinner {
+      width: 26px; height: 26px;
+      border: 2px solid var(--border);
+      border-top-color: var(--silver);
+      border-radius: 50%;
+      animation: spin 0.7s linear infinite;
+    }
+    @keyframes spin { to { transform: rotate(360deg); } }
+
+    /* ── TOAST ── */
+    #toast {
+      position: fixed; bottom: 24px; left: 50%; transform: translateX(-50%);
+      background: var(--white); color: var(--black);
+      padding: 8px 22px; border-radius: 20px;
+      font-family: 'Rajdhani', sans-serif; font-size: 12px;
+      font-weight: 700; letter-spacing: 2px; text-transform: uppercase;
+      z-index: 999; box-shadow: 0 4px 20px rgba(0,0,0,0.6);
+      transition: opacity 0.3s; pointer-events: none; opacity: 0;
+    }
+
+    /* ── MOBILE ── */
+    .sidebar-overlay {
+      display: none; position: fixed; inset: 0;
+      background: rgba(0,0,0,0.8); z-index: 200;
+    }
+
+    @media (max-width: 768px) {
+      header { padding: 0 14px; height: 58px; }
+      .logo-img { height: 40px; }
+      .last-updated, .header-divider, .header-label, .header-sub { display: none; }
+      .filter-toggle-btn { display: block; }
+      .app-body { height: calc(100vh - 108px); }
+      .sidebar {
+        position: fixed; left: -248px; top: 0; bottom: 0;
+        width: 248px; z-index: 250; transition: left 0.3s;
+        padding-top: 68px; background: var(--black);
+      }
+      .sidebar.open { left: 0; }
+      .sidebar-overlay.open { display: block; }
+      .cards-grid { grid-template-columns: 1fr; }
+      .main { padding: 12px; }
+      .stats-bar { padding: 8px 12px; }
+    }
+
+    @media (max-width: 420px) {
+      .card-top { flex-direction: column; gap: 6px; }
+      .status-badge { align-self: flex-start; }
+    }
+
+    ::-webkit-scrollbar { width: 4px; height: 4px; }
+    ::-webkit-scrollbar-track { background: transparent; }
+    ::-webkit-scrollbar-thumb { background: var(--border); border-radius: 4px; }
+  </style>
+</head>
+<body>
+
+<!-- HEADER -->
+<header>
+  <div class="header-left">
+    <img src="./sigops-logo.jpg" alt="SigOps — Signal Operations" class="logo-img" />
+    <div class="header-divider"></div>
+    <div>
+      <div class="header-label">CRE Dashboard</div>
+      <div class="header-sub">Agent Intelligence</div>
+    </div>
+  </div>
+  <div class="header-right">
+    <span class="last-updated" id="lastUpdatedLabel"></span>
+    <button class="filter-toggle-btn" onclick="toggleSidebar()">⚙ Filters</button>
+    <button class="mode-btn" id="modeToggle" onclick="toggleMode()">Internal</button>
+  </div>
+</header>
+
+<!-- STATS BAR -->
+<div class="stats-bar">
+  <div class="stat-chip active" id="stat-all" onclick="filterByStatus(null)">
+    <strong id="count-all">—</strong>All
+  </div>
+  <div class="stat-chip" id="stat-not_contacted" onclick="filterByStatus('not_contacted')">
+    <strong id="count-not_contacted">—</strong>Prospects
+  </div>
+  <div class="stat-chip" id="stat-contacted" onclick="filterByStatus('contacted')">
+    <strong id="count-contacted">—</strong>Contacted
+  </div>
+  <div class="stat-chip" id="stat-interested" onclick="filterByStatus('interested')">
+    <strong id="count-interested">—</strong>Interested
+  </div>
+  <div class="stat-chip" id="stat-pilot_active" onclick="filterByStatus('pilot_active')">
+    <strong id="count-pilot_active">—</strong>Active Pilots
+  </div>
+  <div class="stat-chip" id="stat-converted" onclick="filterByStatus('converted')">
+    <strong id="count-converted">—</strong>Converted
+  </div>
+</div>
+
+<!-- MOBILE OVERLAY -->
+<div class="sidebar-overlay" id="sidebarOverlay" onclick="toggleSidebar()"></div>
+
+<!-- BODY -->
+<div class="app-body">
+
+  <!-- SIDEBAR -->
+  <aside class="sidebar" id="sidebar">
+    <div class="sidebar-title">Filter Agents</div>
+    <div class="filter-group">
+      <label>Search</label>
+      <input type="text" id="searchInput" placeholder="Name, firm, city…" oninput="applyFilters()" />
+    </div>
+    <div class="filter-group">
+      <label>State</label>
+      <select id="filterState" onchange="applyFilters()">
+        <option value="">All States</option>
+        <option value="TX">Texas</option>
+        <option value="AZ">Arizona</option>
+      </select>
+    </div>
+    <div class="filter-group">
+      <label>City</label>
+      <select id="filterCity" onchange="applyFilters()">
+        <option value="">All Cities</option>
+      </select>
+    </div>
+    <div class="filter-group">
+      <label>Firm</label>
+      <select id="filterFirm" onchange="applyFilters()">
+        <option value="">All Firms</option>
+      </select>
+    </div>
+    <div class="filter-group">
+      <label>Specialization</label>
+      <select id="filterSpec" onchange="applyFilters()">
+        <option value="">All Types</option>
+        <option value="Office">Office</option>
+        <option value="Retail">Retail</option>
+        <option value="Industrial">Industrial</option>
+        <option value="Multifamily">Multifamily</option>
+        <option value="Land">Land</option>
+      </select>
+    </div>
+    <div class="filter-group" id="pilotFilterGroup">
+      <label>Pipeline Status</label>
+      <select id="filterStatus" onchange="applyFilters()">
+        <option value="">All Statuses</option>
+        <option value="not_contacted">Prospect</option>
+        <option value="contacted">Contacted</option>
+        <option value="interested">Interested</option>
+        <option value="pilot_active">Pilot Active</option>
+        <option value="converted">Converted</option>
+      </select>
+    </div>
+    <button class="clear-btn" onclick="clearFilters()">✕  Clear Filters</button>
+  </aside>
+
+  <!-- MAIN -->
+  <main class="main">
+    <div class="results-header">
+      <div class="results-count" id="resultsCount">Loading…</div>
+    </div>
+    <div class="cards-grid" id="cardsGrid">
+      <div class="loading"><div class="spinner"></div><span>Loading Agents</span></div>
+    </div>
+
+    <!-- CTA -->
+    <div class="cta-section" id="ctaSection">
+      <div class="cta-inner">
+        <div class="cta-eyebrow">Signal Operations · AI Voice Agent</div>
+        <div class="cta-title">Stop Missing Calls.<br>Start Closing Deals.</div>
+        <p class="cta-sub">One week. Zero commitment. Your AI voice agent handles every call, qualifies leads, and books appointments — 24/7, zero human intervention.</p>
+        <button class="cta-btn" onclick="alert('Pilot sign-up coming soon!')">Start Free Pilot</button>
+      </div>
+    </div>
+  </main>
+</div>
+
+<div id="toast"></div>
+
+<script>
+  let allAgents = [], filteredAgents = [], demoMode = false, activeStatusFilter = null;
+
+  const STATUS_LABELS = {
+    not_contacted: 'Prospect',
+    contacted:     'Contacted',
+    interested:    'Interested',
+    pilot_active:  'Pilot Active',
+    converted:     'Converted'
+  };
+
+  async function loadData() {
+    try {
+      const res  = await fetch('./agents.json?_=' + Date.now());
+      const data = await res.json();
+      allAgents  = data.agents || [];
+      const el   = document.getElementById('lastUpdatedLabel');
+      if (el) el.textContent = 'Updated ' + data.lastUpdated;
+      populateFilterOptions();
+      applyFilters();
+    } catch(e) {
+      document.getElementById('cardsGrid').innerHTML =
+        '<div class="empty-state"><div class="icon">⚠️</div><p>Could not load agents.json — make sure it is in the same folder.</p></div>';
+    }
+  }
+
+  function populateFilterOptions() {
+    const cities = [...new Set(allAgents.map(a => a.city))].sort();
+    const firms  = [...new Set(allAgents.map(a => a.firm))].sort();
+    const cel = document.getElementById('filterCity');
+    const fel = document.getElementById('filterFirm');
+    cities.forEach(c => { const o = document.createElement('option'); o.value = c; o.textContent = c; cel.appendChild(o); });
+    firms.forEach(f  => { const o = document.createElement('option'); o.value = f; o.textContent = f; fel.appendChild(o); });
+  }
+
+  function applyFilters() {
+    const q      = document.getElementById('searchInput').value.toLowerCase();
+    const state  = document.getElementById('filterState').value;
+    const city   = document.getElementById('filterCity').value;
+    const firm   = document.getElementById('filterFirm').value;
+    const spec   = document.getElementById('filterSpec').value;
+    const status = activeStatusFilter || document.getElementById('filterStatus').value;
+
+    filteredAgents = allAgents.filter(a => {
+      if (state  && a.state !== state) return false;
+      if (city   && a.city  !== city)  return false;
+      if (firm   && a.firm  !== firm)  return false;
+      if (spec   && !a.specialization.includes(spec)) return false;
+      if (status && a.pilotStatus !== status) return false;
+      if (q      && !`${a.name} ${a.firm} ${a.city}`.toLowerCase().includes(q)) return false;
+      return true;
+    });
+    updateStats();
+    renderCards();
+  }
+
+  function updateStats() {
+    document.getElementById('count-all').textContent = allAgents.length;
+    ['not_contacted','contacted','interested','pilot_active','converted'].forEach(s => {
+      document.getElementById('count-' + s).textContent = allAgents.filter(a => a.pilotStatus === s).length;
+    });
+    document.querySelectorAll('.stat-chip').forEach(c => c.classList.remove('active'));
+    document.getElementById(activeStatusFilter ? 'stat-' + activeStatusFilter : 'stat-all')?.classList.add('active');
+    document.getElementById('resultsCount').innerHTML =
+      `<strong>${filteredAgents.length}</strong> of <strong>${allAgents.length}</strong> Agents`;
+  }
+
+  function filterByStatus(s) {
+    activeStatusFilter = s;
+    document.getElementById('filterStatus').value = s || '';
+    applyFilters();
+  }
+
+  function renderCards() {
+    const grid = document.getElementById('cardsGrid');
+    if (!filteredAgents.length) {
+      grid.innerHTML = '<div class="empty-state"><div class="icon">🔍</div><p>No agents match your filters.</p></div>';
+      return;
+    }
+    grid.innerHTML = filteredAgents.map(cardHTML).join('');
+  }
+
+  function cardHTML(a) {
+    const label  = STATUS_LABELS[a.pilotStatus] || a.pilotStatus;
+    const lCount = (a.listings?.forLease || []).length;
+    const sCount = (a.listings?.forSale  || []).length;
+    const tags   = (a.specialization || []).map(s => `<span class="tag">${s}</span>`).join('');
+    return `
+    <div class="agent-card" id="card-${a.id}" onclick="toggleCard('${a.id}',event)">
+      <div class="card-header">
+        <div class="card-top">
+          <div>
+            <div class="agent-name">${a.name}</div>
+            <div class="agent-firm">${a.firm} &middot; ${a.city}, ${a.state}</div>
+          </div>
+          <span class="status-badge status-${a.pilotStatus}">${label}</span>
+        </div>
+        <div class="card-tags">${tags}</div>
+      </div>
+      <div class="card-contact">
+        <div class="contact-row"><span class="contact-icon">☎</span><a href="tel:${a.phone}" onclick="event.stopPropagation()">${a.phone}</a></div>
+        <div class="contact-row"><span class="contact-icon">@</span><a href="mailto:${a.email}" onclick="event.stopPropagation()">${a.email}</a></div>
+      </div>
+      <div class="card-footer">
+        <div class="listing-counts">
+          <span class="listing-count-chip">🏢 ${lCount} Lease</span>
+          <span class="listing-count-chip">💰 ${sCount} Sale</span>
+        </div>
+        <span class="expand-arrow">▼</span>
+      </div>
+      <div class="expand-panel">
+        ${buildListings(a)}
+        ${demoMode ? '' : buildInternal(a)}
+      </div>
+    </div>`;
+  }
+
+  function buildListings(a) {
+    const leases = a.listings?.forLease || [];
+    const sales  = a.listings?.forSale  || [];
+    const item = l => `
+      <div class="listing-item">
+        <div class="listing-name">${l.propertyName}</div>
+        <div class="listing-details">
+          <span>📍 ${l.address}</span>
+          <span>${l.sqft?.toLocaleString()} sqft</span>
+          <span>$${l.pricePerSqft}/sqft</span>
+          <span class="listing-tag">${l.type}</span>
+          <span class="listing-tag">${l.status}</span>
+        </div>
+        <a class="listing-link" href="${l.listingUrl}" target="_blank" onclick="event.stopPropagation()">View on ${a.source} →</a>
+      </div>`;
+    let h = '';
+    if (leases.length) h += `<div class="panel-section"><div class="panel-title">For Lease (${leases.length})</div>${leases.map(item).join('')}</div>`;
+    if (sales.length)  h += `<div class="panel-section"><div class="panel-title">For Sale (${sales.length})</div>${sales.map(item).join('')}</div>`;
+    if (!h) h = `<div class="panel-section"><p class="no-listings">No active listings on file.</p></div>`;
+    return h;
+  }
+
+  function buildInternal(a) {
+    const opts = Object.entries(STATUS_LABELS).map(([v,l]) =>
+      `<option value="${v}" ${a.pilotStatus===v?'selected':''}>${l}</option>`).join('');
+    return `
+    <div class="panel-section" onclick="event.stopPropagation()">
+      <div class="panel-title">Pipeline &amp; Notes</div>
+      <div class="status-editor">
+        <label>Status</label>
+        <select onchange="updateStatus('${a.id}',this.value)">${opts}</select>
+      </div>
+      <textarea class="notes-field" placeholder="Add notes…" onblur="updateNotes('${a.id}',this.value)">${a.notes||''}</textarea>
+      <div class="internal-meta">Source: ${a.source} &nbsp;·&nbsp; Lic: ${a.licenseNumber} &nbsp;·&nbsp; ${a.yearsActive} yrs active</div>
+    </div>`;
+  }
+
+  function toggleCard(id, e) {
+    if (['A','SELECT','TEXTAREA'].includes(e?.target.tagName)) return;
+    document.getElementById('card-'+id)?.classList.toggle('expanded');
+  }
+
+  function updateStatus(id, v) {
+    const a = allAgents.find(x => x.id===id); if (!a) return;
+    a.pilotStatus = v;
+    const badge = document.querySelector(`#card-${id} .status-badge`);
+    if (badge) { badge.className = 'status-badge status-'+v; badge.textContent = STATUS_LABELS[v]; }
+    updateStats();
+    showToast('Status → ' + STATUS_LABELS[v]);
+  }
+
+  function updateNotes(id, val) {
+    const a = allAgents.find(x => x.id===id);
+    if (a) { a.notes = val; showToast('Note saved'); }
+  }
+
+  function toggleMode() {
+    demoMode = !demoMode;
+    const btn = document.getElementById('modeToggle');
+    btn.textContent = demoMode ? 'Demo' : 'Internal';
+    btn.classList.toggle('demo', demoMode);
+    document.getElementById('pilotFilterGroup').style.display = demoMode ? 'none' : '';
+    renderCards();
+    showToast(demoMode ? 'Demo mode — CRM hidden' : 'Internal mode');
+  }
+
+  function toggleSidebar() {
+    document.getElementById('sidebar').classList.toggle('open');
+    document.getElementById('sidebarOverlay').classList.toggle('open');
+  }
+
+  function clearFilters() {
+    ['searchInput','filterState','filterCity','filterFirm','filterSpec','filterStatus'].forEach(id => {
+      document.getElementById(id).value = '';
+    });
+    activeStatusFilter = null;
+    applyFilters();
+  }
+
+  let toastTimer;
+  function showToast(msg) {
+    const t = document.getElementById('toast');
+    t.textContent = msg; t.style.opacity = '1';
+    clearTimeout(toastTimer);
+    toastTimer = setTimeout(() => { t.style.opacity = '0'; }, 2000);
+  }
+
+  loadData();
+</script>
+</body>
+</html>
